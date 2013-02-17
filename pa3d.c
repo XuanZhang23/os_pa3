@@ -144,24 +144,18 @@
 #define CAR3	3
 #define CAR4	4
 
+#define NONE  2
 #define DEBUG 1
  
 typedef int sem;    
 
-
 static struct {
-  int sem;
-} road[NUMPOS];
-
-static struct {
-  int spot[NUMPOS];     // Which spots are being used at the moment.
-  sem mutex;            // Semaphore for proceeding
-} shm;
-
-static struct {
-  sem mutex;
+  sem sem;
   int car;
+  int from;
+
 } pos[NUMPOS+1];
+
 
 void InitRoad ();
 void driveRoad (int c, int from, int mph);
@@ -181,24 +175,24 @@ void Main ()
 	 */
  
 	if (Fork () == 0) {				/* Car 2 */
-		Delay (200);
-    driveRoad (CAR2, EAST, 70);
-		Exit ();
-	}
-
-	if (Fork () == 0) {				/* Car 3 */
 		Delay (300);
-		driveRoad (CAR3, EAST, 90);
+    driveRoad (CAR2, EAST, 90);
 		Exit ();
 	}
 
-//	if (Fork () == 0) {				/* Car 4 */
-//		Delay (900);
-//		driveRoad (CAR4, WEST, 30);
+//	if (Fork () == 0) {				/* Car 3 */
+//		Delay (200);
+//		driveRoad (CAR3, EAST, 80);
 //		Exit ();
 //	}
 
-	driveRoad (CAR1, EAST, 40);			/* Car 1 */
+//	if (Fork () == 0) {				/* Car 4 */
+//		Delay (900);
+//		driveRoad (CAR4, WEST, 120);
+//		Exit ();
+//	}
+
+	driveRoad (CAR1, EAST, 50);			/* Car 1 */
 
 	Exit ();
 }
@@ -212,14 +206,12 @@ void Main ()
 void InitRoad ()
 {
 	/* do any initializations here */
-  //Regshm ((char *) &shm, sizeof (shm));
   Regshm ((char *) &pos, sizeof (pos));
   for(int i = 0; i < NUMPOS+1 ; i++) {
-    //shm.mutex= ;
-    pos[i].mutex = Seminit (1);
+    pos[i].sem = Seminit (1);
     pos[i].car = 0;
+    pos[i].from = NONE;  // no direction
   }
-  // shm.mutex = Seminit (1);
 }
 
 #define IPOS(FROM)	(((FROM) == WEST) ? 1 : NUMPOS)
@@ -228,11 +220,17 @@ void driveRoad (c, from, mph)
 	int c, from, mph;
 {
 	int p, np, i;				/* positions */
-	EnterRoad (from);
+
+  // Printf ("%d", pos[from].from);
+  /* Make car wait if cars going opposiite direction on road */
+  EnterRoad (from);
   pos[IPOS(from)].car = Getpid ();
+  pos[IPOS(from)].from =  from;
   PrintRoad ();
 	Printf ("Car %d enters at %d at %d mph\n", c, IPOS(from), mph);
   
+
+  /* print road map at enter */
   if (DEBUG) { 
     Printf ("                                              #\n");
     printRoad (0);
@@ -254,20 +252,23 @@ void driveRoad (c, from, mph)
       printRoad (0);                   // print pre-cs
     }
 
-    Wait (pos[np].mutex);              // CRITICAL SECTION (starts)
+    Wait (pos[np].sem);              // CRITICAL SECTION (starts)
 
     if(pos[np].car == 0) {             // you are in p, you want to enter np
 		  ProceedRoad ();
       pos[np].car = Getpid ();         // you have entered in position np, you have left p 
-      pos[p].car = 0;
+      pos[np].from = from;
+
+      pos[p].car = 0;                  // reset prev pos values
+      pos[p].from = NONE;
 		  Printf ("Car %d moves from %d to %d\n", c, p, np);
     } else {
-      /* this should not be printing */
+      /* error if this prints */
       Printf ("Car %d doesn't move from %d to %d              X\n", c, p, np);
     }
 
 		PrintRoad ();
-    Signal (pos[p].mutex);             // CRITICAL SECTION (ends)
+    Signal (pos[p].sem);             // CRITICAL SECTION (ends)
 
     
     if(DEBUG) {             
@@ -285,8 +286,9 @@ void driveRoad (c, from, mph)
   }
                                        // CRITICAL SECTION
   ProceedRoad (); 
-  pos[np].car = 0;
-  Signal (pos[np].mutex);
+  pos[np].car = 0;                     // car exits -> reset vals 
+  pos[np].from = NONE;
+  Signal (pos[np].sem);
   
   if (DEBUG) {
     printRoad (1);
@@ -320,8 +322,23 @@ void printRoad (int num) {
     Printf ("%d - ", i);                // print positions
   }
   Printf ("\n");
-  for(int i = 0; i < NUMPOS+1; i++) {     // print cars
+  
+  for(int i =0 ; i < NUMPOS+1; i++) {     // print cars
     Printf ("%d   ", pos[i].car);
+  }
+  Printf ("\n");
+  
+  for(int i = 0; i < NUMPOS+1; i++) {
+    int v = pos[i].from;
+    char from = 'n';
+    if (v == 0) {
+      from = 'w'; 
+    } else if (v == 1) {
+      from = 'e';
+    } else if (v == 2) {
+      from = '-';
+    }
+    Printf ("%c   ", from);
   }
   Printf ("\n");
   Printf ("-------------------------------------------\n");
