@@ -157,10 +157,17 @@ typedef struct {
 
 static struct {
   position pos[NUMPOS+1];
+
 }shm;
 
 void InitRoad ();
 void driveRoad (int c, int from, int mph);
+int isWest();
+int isEast();
+int isNone();
+
+/* testing functions*/
+void printDirection();
 void printRoad (int num);
 
 void Main ()
@@ -177,16 +184,16 @@ void Main ()
 	 */
  
 	if (Fork () == 0) {				/* Car 2 */
-		Delay (300);
+		Delay (0);
     driveRoad (CAR2, EAST, 90);
 		Exit ();
 	}
 
-//	if (Fork () == 0) {				/* Car 3 */
-//		Delay (200);
-//		driveRoad (CAR3, EAST, 80);
-//		Exit ();
-//	}
+	if (Fork () == 0) {				/* Car 3 */
+		Delay (0);
+		driveRoad (CAR3, EAST, 80);
+		Exit ();
+	}
 
 //	if (Fork () == 0) {				/* Car 4 */
 //		Delay (900);
@@ -223,11 +230,17 @@ void driveRoad (c, from, mph)
 {
 	int p, np, i;				/* positions */
 
-  // Printf ("%d", pos[from].from);
+  Printf ("%d\n",  IPOS(from));
+  p = 0;
+  np = IPOS(from);
+  
   /* Make car wait if cars going opposiite direction on road */
+  Wait (shm.pos[np].sem);
   EnterRoad (from);
   shm.pos[IPOS(from)].car = Getpid ();
   shm.pos[IPOS(from)].from =  from;
+  Signal (shm.pos[p].sem);
+
   PrintRoad ();
 	Printf ("Car %d enters at %d at %d mph\n", c, IPOS(from), mph);
   
@@ -274,6 +287,7 @@ void driveRoad (c, from, mph)
 
     
     if(DEBUG) {             
+      printDirection();
       Printf ("\n");
       printRoad (1);                   // print post-cs
       Printf ("\n");
@@ -304,6 +318,7 @@ void driveRoad (c, from, mph)
 
   
   if (DEBUG) {
+    printDirection();
     printRoad (2);
     Printf ("\n\n");
   }
@@ -333,9 +348,9 @@ void printRoad (int num) {
   for(int i = 0; i < NUMPOS+1; i++) {
     int v = shm.pos[i].from;
     char from = 'n';
-    if (v == 0) {
+    if (v == 0 && i !=0) {
       from = 'w'; 
-    } else if (v == 1) {
+    } else if (v == 1) { 
       from = 'e';
     } else if (v == 2) {
       from = '-';
@@ -344,5 +359,42 @@ void printRoad (int num) {
   }
   Printf ("\n");
   Printf ("-------------------------------------------\n");
+}
+
+int isWest() {
+  int res = 1;
+  int flag = 0;
+  for (int i = 1; i < NUMPOS+1; i++){
+    if(shm.pos[i].from != 0) {
+      if(shm.pos[i].from != NONE) { return 0; } 
+    } else { flag = 1; }
+  }
+  if (flag == 0 ) return 0;
+  return res;
+}
+
+int isEast() {
+  int res = 1;
+  int flag = 0;
+  for (int i = 1; i < NUMPOS+1; i++){
+    if(shm.pos[i].from != 1) {
+      if(shm.pos[i].from != NONE) { return 0; } 
+    } else { flag = 1; }
+  }
+  if (flag == 0 ) return 0;
+  return res;
+}
+
+int isNone() {
+  int res = 1;
+  for (int i = 1; i < NUMPOS+1; i++){
+    if(shm.pos[i].from == 0 || shm.pos[i].from == 1)
+      return 0;
+  }
+  return res;
+}
+
+void printDirection(){
+  Printf ("west: %d; east: %d; none: %d\n",isWest(), isEast(), isNone() );
 
 }
