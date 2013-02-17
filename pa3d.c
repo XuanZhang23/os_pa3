@@ -149,13 +149,15 @@
  
 typedef int sem;    
 
-static struct {
+typedef struct {
   sem sem;
   int car;
   int from;
+} position;
 
-} pos[NUMPOS+1];
-
+static struct {
+  position pos[NUMPOS+1];
+}shm;
 
 void InitRoad ();
 void driveRoad (int c, int from, int mph);
@@ -206,11 +208,11 @@ void Main ()
 void InitRoad ()
 {
 	/* do any initializations here */
-  Regshm ((char *) &pos, sizeof (pos));
+  Regshm ((char *) &shm, sizeof (shm));
   for(int i = 0; i < NUMPOS+1 ; i++) {
-    pos[i].sem = Seminit (1);
-    pos[i].car = 0;
-    pos[i].from = NONE;  // no direction
+    shm.pos[i].sem = Seminit (1);
+    shm.pos[i].car = 0;
+    shm.pos[i].from = NONE;  // no direction
   }
 }
 
@@ -224,8 +226,8 @@ void driveRoad (c, from, mph)
   // Printf ("%d", pos[from].from);
   /* Make car wait if cars going opposiite direction on road */
   EnterRoad (from);
-  pos[IPOS(from)].car = Getpid ();
-  pos[IPOS(from)].from =  from;
+  shm.pos[IPOS(from)].car = Getpid ();
+  shm.pos[IPOS(from)].from =  from;
   PrintRoad ();
 	Printf ("Car %d enters at %d at %d mph\n", c, IPOS(from), mph);
   
@@ -252,15 +254,15 @@ void driveRoad (c, from, mph)
       printRoad (0);                   // print pre-cs
     }
 
-    Wait (pos[np].sem);              // CRITICAL SECTION (starts)
+    Wait (shm.pos[np].sem);              // CRITICAL SECTION (starts)
 
-    if(pos[np].car == 0) {             // you are in p, you want to enter np
+    if(shm.pos[np].car == 0) {             // you are in p, you want to enter np
 		  ProceedRoad ();
-      pos[np].car = Getpid ();         // you have entered in position np, you have left p 
-      pos[np].from = from;
+      shm.pos[np].car = Getpid ();         // you have entered in shm.position np, you have left p 
+      shm.pos[np].from = from;
 
-      pos[p].car = 0;                  // reset prev pos values
-      pos[p].from = NONE;
+      shm.pos[p].car = 0;                  // reset prev shm.pos values
+      shm.pos[p].from = NONE;
 		  Printf ("Car %d moves from %d to %d\n", c, p, np);
     } else {
       /* error if this prints */
@@ -268,7 +270,7 @@ void driveRoad (c, from, mph)
     }
 
 		PrintRoad ();
-    Signal (pos[p].sem);             // CRITICAL SECTION (ends)
+    Signal (shm.pos[p].sem);             // CRITICAL SECTION (ends)
 
     
     if(DEBUG) {             
@@ -286,9 +288,9 @@ void driveRoad (c, from, mph)
   }
                                        // CRITICAL SECTION
   ProceedRoad (); 
-  pos[np].car = 0;                     // car exits -> reset vals 
-  pos[np].from = NONE;
-  Signal (pos[np].sem);
+  shm.pos[np].car = 0;                     // car exits -> reset vals 
+  shm.pos[np].from = NONE;
+  Signal (shm.pos[np].sem);
   
   if (DEBUG) {
     printRoad (1);
@@ -324,12 +326,12 @@ void printRoad (int num) {
   Printf ("\n");
   
   for(int i =0 ; i < NUMPOS+1; i++) {     // print cars
-    Printf ("%d   ", pos[i].car);
+    Printf ("%d   ", shm.pos[i].car);
   }
   Printf ("\n");
   
   for(int i = 0; i < NUMPOS+1; i++) {
-    int v = pos[i].from;
+    int v = shm.pos[i].from;
     char from = 'n';
     if (v == 0) {
       from = 'w'; 
