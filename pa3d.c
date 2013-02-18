@@ -204,15 +204,65 @@ void Main ()
 	 * which will first call InitRoad before any calls to DriveRoad.
 	 * So, you should do any initializations in InitRoad.
 	 */
-if (Fork () == 0) {
-      driveRoad (2, WEST, 20);
-          Exit ();
-            }
-  driveRoad (1,WEST, 20);
 
-        Exit ();
-}
+ if (Fork () == 0) {
+       Delay (0);
+           driveRoad (2, WEST, 10);
+               Exit ();
+                 }
 
+   if (Fork () == 0) {
+         Delay (0);
+             driveRoad (3, WEST, 20);
+                 Exit ();
+                   }
+
+     if (Fork () == 0) {
+           Delay (0);
+               driveRoad (4, WEST, 30);
+                   Exit ();
+                     }
+
+       if (Fork () == 0) {
+             Delay (0);
+                 driveRoad (5, WEST, 40);
+                     Exit ();
+                       }
+
+         if (Fork () == 0) {
+               Delay (0);
+                   driveRoad (6, EAST, 50);
+                       Exit ();
+                         }
+
+           if (Fork () == 0) {
+                 Delay (0);
+                     driveRoad (7, EAST, 60);
+                         Exit ();
+                           }
+
+             if (Fork () == 0) {
+                   Delay (0);
+                       driveRoad (8, EAST, 70);
+                           Exit ();
+                             }
+
+               if (Fork () == 0) {
+                     Delay (0);
+                         driveRoad (9, EAST, 80);
+                             Exit ();
+                               }
+
+                 if (Fork () == 0) {
+                       Delay (0);
+                           driveRoad (10, EAST, 90);
+                               Exit ();
+                                 }
+
+                   driveRoad (1, WEST, 5);
+                   Exit ();
+
+  }
 /* Our tests will call your versions of InitRoad and DriveRoad, so your
  * solution to the car simulation should be limited to modifying the code
  * below.  This is in addition to your implementation of semaphores
@@ -422,7 +472,7 @@ void printDirection(){
 
 void Arrive (int from, int c) {
 //  Wait (shm.mutex);
-
+  // Printf ("from: %d\n", from);
   // if cars on the road, then...
   if ((getwestbound() > 0) || (geteastbound() > 0)) {
    
@@ -449,7 +499,7 @@ void Arrive (int from, int c) {
       }
     }
     // if car is coming from the east entrance...
-    else {
+    else if (from == EAST) {
       if ((geteastbound() > 0) || (shm.westWait > 0)) {
         shm.eastWait++;                       // count waiters, and wait for signal        
         // update direction order list
@@ -468,7 +518,10 @@ void Arrive (int from, int c) {
       if(DEBUG) {
         Printf ("Car %d is on westbound bound\n", c);
       }
-    }
+  } 
+  
+
+
   } 
   // count how many cars are on the road
    if (from == WEST) shm.eastbound++;
@@ -506,7 +559,7 @@ void Depart (int from, int c) {
     }
  }
  if (dir == NONE) {
-    shm.whead = (shm.whead+1)%(MAXPROCS);
+ //   shm.whead = (shm.whead+1)%(MAXPROCS);
  }
   //Signal (shm.mutex);
 }
