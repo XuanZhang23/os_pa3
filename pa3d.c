@@ -143,10 +143,13 @@
 #define CAR2	2
 #define CAR3	3
 #define CAR4	4
+#define MAXPROCS 25
 
 #define NONE  2
 #define DEBUG 0
-#define DEBUG1 1  //labels 
+#define DEBUG1 1   //labels 
+
+
 typedef int semaphore;
 typedef int queue;
 typedef struct {
@@ -165,7 +168,7 @@ static struct {
   int westWait;
   int eastWait;
 
-  queue waitlist[NUMPOS+1];                   // direction order of waiting processes
+  queue waitlist[MAXPROCS];                   // direction order of waiting processes
   int numWait;
   int whead;
   int wtail;
@@ -201,28 +204,28 @@ void Main ()
 	 * which will first call InitRoad before any calls to DriveRoad.
 	 * So, you should do any initializations in InitRoad.
 	 */
- 
-	if (Fork () == 0) {				/* Car 2 */
-		Delay (0);
-    driveRoad (CAR2, WEST, 90);
-		Exit ();
-	}
 
-	if (Fork () == 0) {				/* Car 3 */
-		Delay (0);
-		driveRoad (CAR3, EAST, 80);
-		Exit ();
-	}
 
-	if (Fork () == 0) {				/* Car 4 */
-		Delay (0);
-		driveRoad (CAR4, WEST, 120);
-		Exit ();
-	}
-
-	driveRoad (CAR1, WEST, 50);			/* Car 1 */
-
-	Exit ();
+	if (Fork () == 0) {        /* Car 2 */
+        Delay (1162);
+            driveRoad (CAR2, WEST, 60);
+                Exit ();
+                  }
+  
+    if (Fork () == 0) {       /* Car 3 */
+          Delay (900);
+              driveRoad (CAR3, EAST, 50);
+                  Exit ();
+                    }
+    
+      if (Fork () == 0) {       /* Car 4 */
+            Delay (900);
+                driveRoad (CAR4, WEST, 30);
+                    Exit ();
+                      }
+      
+        driveRoad (CAR1, EAST, 40);     /* Car 1 */
+        Exit ();
 }
 
 /* Our tests will call your versions of InitRoad and DriveRoad, so your
@@ -260,29 +263,21 @@ void driveRoad (c, from, mph)
 {
 	int p, np, i;				/* positions */
   
-  Printf ("west: %d east: %d\n", WEST, EAST);
   p = 0;
   np = IPOS(from);
   
-  /* Make car wait if cars going opposiite direction on road */
- /* if (from == WEST) {
-    entryWest();
-  } else {
-    entryEast();
-  }*/
-
   Arrive (from, c);
 
   if (DEBUG1) {
     Printf ("Car %d arrives from %d                          *****\n", c, IPOS(from));
   }
+  
   Wait (shm.pos[np].sem);
   EnterRoad (from);
   shm.pos[IPOS(from)].car = Getpid ();
   shm.pos[IPOS(from)].from =  from;
   Signal (shm.pos[p].sem);
 
-  Printf ("\n");
   PrintRoad ();
 	Printf ("Car %d enters at %d at %d mph\n", c, IPOS(from), mph);
   
@@ -308,7 +303,7 @@ void driveRoad (c, from, mph)
     if(DEBUG) {              
       printRoad (0);                   // print pre-cs
     }
-
+    
     Wait (shm.pos[np].sem);              // CRITICAL SECTION (starts)
 
     if(shm.pos[np].car == 0) {             // you are in p, you want to enter np
@@ -318,7 +313,8 @@ void driveRoad (c, from, mph)
 
       shm.pos[p].car = 0;                  // reset prev shm.pos values
       shm.pos[p].from = NONE;
-		  Printf ("Car %d moves from %d to %d  %d:%d ", c, p, np, shm.westWait, shm.eastWait);
+      PrintRoad ();
+      Printf ("Car %d moves from %d to %d \n", c, p, np);
       
       if(DEBUG1) printWaitlist ();
     } else {
@@ -326,7 +322,7 @@ void driveRoad (c, from, mph)
       Printf ("Car %d doesn't move from %d to %d              X\n", c, p, np);
     }
 
-		PrintRoad ();
+		//PrintRoad ();
     Signal (shm.pos[p].sem);             // CRITICAL SECTION (ends)
 
     
@@ -364,9 +360,8 @@ void driveRoad (c, from, mph)
   }
 
   
-  Printf ("\n");
 	PrintRoad ();
-	Printf ("\nCar %d exits road                          ->>>\n", c);
+	Printf ("Car %d exits road                          ->>>\n", c);
 
   
   if (DEBUG) {
@@ -435,30 +430,6 @@ void printDirection(){
 
 }
 
-/*void entryWest( ) {
-  Wait (shm.mutex);  
-  // cars in opposite direction 
-  if (eastbound > 0 ){ 
-    shm.wait[shm.wtail] = WEST;        // add waiting car's direction to queue
-    shm.wtail = (shm.wtail+1)%NUMPOS;  // might need to change size
-    shm.numWait++;                          // incr waiting counter
-
-    Signal (shm.mutex);
-    Wait (shm.westGate);                  // car is wating at west gate
-    shm.numWait--;
-  } 
-
-  // road is empty and no cars are waiting   
-  Signal (shm.mutex);
-  
-  //Wait (shm.pos[np].sem);
-}
-
-void exitWest() {
-  Wait (shm.mutex);
-  Signal (shm.mutex);
-}*/
-
 void Arrive (int from, int c) {
   Wait (shm.mutex);
 
@@ -524,16 +495,11 @@ void Depart (int from, int c) {
     shm.westbound--;
   }
 
-
   int dir = shm.waitlist[shm.whead];      // get next dir from wait queue
- // shm.whead = (shm.whead+1)%(NUMPOS+1);   // incremement wait queue
-
-
-  if (dir == WEST ){ 
+  if (dir == WEST ) { 
     if ((getwestbound() == 0) && (shm.westWait > 0)){
-      shm.whead = (shm.whead+1)%(NUMPOS+1);
+      shm.whead = (shm.whead+1)%(MAXPROCS);
       Signal (shm.westGate);
-     // shm.whead = (shm.whead+1)%(NUMPOS+1);
       if (DEBUG1) Printf ("Gate %d is open \n", dir);
     } else {
       if(DEBUG1) Printf ("Gate %d can't open, oncoming traffic exists!\n", dir);
@@ -543,7 +509,6 @@ void Depart (int from, int c) {
     if((geteastbound() == 0) && (shm.eastWait > 0)) {
       shm.whead = (shm.whead+1)%(NUMPOS+1);
       Signal (shm.eastGate);
-      //shm.whead = (shm.whead+1)%(NUMPOS+1);
       if (DEBUG1) Printf ("Gate %d is open \n", dir);
     }
    else {
@@ -551,7 +516,7 @@ void Depart (int from, int c) {
     }
  }
  if (dir == NONE) {
-    shm.whead = (shm.whead+1)%(NUMPOS+1);
+    shm.whead = (shm.whead+1)%(MAXPROCS);
  }
   Signal (shm.mutex);
 }
