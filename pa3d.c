@@ -204,27 +204,12 @@ void Main ()
 	 * which will first call InitRoad before any calls to DriveRoad.
 	 * So, you should do any initializations in InitRoad.
 	 */
+if (Fork () == 0) {
+      driveRoad (2, WEST, 20);
+          Exit ();
+            }
+  driveRoad (1,WEST, 20);
 
-
-	if (Fork () == 0) {        /* Car 2 */
-        Delay (1162);
-            driveRoad (CAR2, WEST, 60);
-                Exit ();
-                  }
-  
-    if (Fork () == 0) {       /* Car 3 */
-          Delay (900);
-              driveRoad (CAR3, EAST, 50);
-                  Exit ();
-                    }
-    
-      if (Fork () == 0) {       /* Car 4 */
-            Delay (900);
-                driveRoad (CAR4, WEST, 30);
-                    Exit ();
-                      }
-      
-        driveRoad (CAR1, EAST, 40);     /* Car 1 */
         Exit ();
 }
 
@@ -448,7 +433,7 @@ void Arrive (int from, int c) {
         shm.westWait++;                       // count waiters, and wait for signal
         // update direction order list
         shm.waitlist[shm.wtail] = from;       // double check 
-        shm.wtail = (shm.wtail+1)%(NUMPOS+1); // increment tail
+        shm.wtail = (shm.wtail+1)%(MAXPROCS); // increment tail
         
         if(DEBUG1) {
           Printf ("Car %d on waitlist on side %d\n", c, from);
@@ -469,7 +454,7 @@ void Arrive (int from, int c) {
         shm.eastWait++;                       // count waiters, and wait for signal        
         // update direction order list
         shm.waitlist[shm.wtail] = from;       // double check 
-        shm.wtail = (shm.wtail+1)%(NUMPOS+1); // increment tail
+        shm.wtail = (shm.wtail+1)%(MAXPROCS); // increment tail
 
         if(DEBUG1) {
           Printf ("Car %d on waitlist on side %d\n", c, from);
@@ -512,7 +497,7 @@ void Depart (int from, int c) {
   }
  if (dir == EAST) {
     if((geteastbound() == 0) || getwestbound() > 0) {
-      shm.whead = (shm.whead+1)%(NUMPOS+1);
+      shm.whead = (shm.whead+1)%(MAXPROCS);
       Signal (shm.eastGate);
       if (DEBUG1) Printf ("Gate %d is open \n", dir);
     }
