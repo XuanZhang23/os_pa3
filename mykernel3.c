@@ -12,7 +12,7 @@
 
 #define FALSE 0
 #define TRUE 1
-#define DEBUG 1
+#define DEBUG 0
 #define DEBUG2 0
 /*	A sample semaphore table.  You may change this any way you wish.
  */
