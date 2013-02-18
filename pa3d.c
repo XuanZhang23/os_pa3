@@ -147,7 +147,7 @@
 
 #define NONE  2
 #define DEBUG 0
-#define DEBUG1 1   //labels 
+#define DEBUG1 0   //labels 
 
 
 typedef int semaphore;
@@ -266,7 +266,10 @@ void driveRoad (c, from, mph)
   p = 0;
   np = IPOS(from);
   
+
+  Wait (shm.mutex);
   Arrive (from, c);
+  Signal (shm.mutex);
 
   if (DEBUG1) {
     Printf ("Car %d arrives from %d                          *****\n", c, IPOS(from));
@@ -352,7 +355,9 @@ void driveRoad (c, from, mph)
   } else { exitEast(); } 
 */
 
+  Wait (shm.mutex);
   Depart (from, c);
+  Signal (shm.mutex);
 
   if (DEBUG) {
     printRoad (1);
@@ -431,7 +436,7 @@ void printDirection(){
 }
 
 void Arrive (int from, int c) {
-  Wait (shm.mutex);
+//  Wait (shm.mutex);
 
   // if cars on the road, then...
   if ((getwestbound() > 0) || (geteastbound() > 0)) {
@@ -483,11 +488,11 @@ void Arrive (int from, int c) {
   // count how many cars are on the road
    if (from == WEST) shm.eastbound++;
    else shm.westbound++;
-  Signal (shm.mutex);
+//  Signal (shm.mutex);
 }
 
 void Depart (int from, int c) {
-  Wait (shm.mutex);
+ // Wait (shm.mutex);
   
   if(from == WEST) {
     shm.eastbound--;
@@ -497,7 +502,7 @@ void Depart (int from, int c) {
 
   int dir = shm.waitlist[shm.whead];      // get next dir from wait queue
   if (dir == WEST ) { 
-    if ((getwestbound() == 0) && (shm.westWait > 0)){
+    if ((getwestbound() == 0) || geteastbound() > 0){
       shm.whead = (shm.whead+1)%(MAXPROCS);
       Signal (shm.westGate);
       if (DEBUG1) Printf ("Gate %d is open \n", dir);
@@ -506,7 +511,7 @@ void Depart (int from, int c) {
     }
   }
  if (dir == EAST) {
-    if((geteastbound() == 0) && (shm.eastWait > 0)) {
+    if((geteastbound() == 0) || getwestbound() > 0) {
       shm.whead = (shm.whead+1)%(NUMPOS+1);
       Signal (shm.eastGate);
       if (DEBUG1) Printf ("Gate %d is open \n", dir);
@@ -518,7 +523,7 @@ void Depart (int from, int c) {
  if (dir == NONE) {
     shm.whead = (shm.whead+1)%(MAXPROCS);
  }
-  Signal (shm.mutex);
+  //Signal (shm.mutex);
 }
 
 void printWaitlist () {
